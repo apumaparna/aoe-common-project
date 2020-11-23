@@ -43,6 +43,8 @@ function keyPressed() {
 function mousePressed() {
   console.log("mousepressed")
   playerBombs[playerBombs.length-1].launched = true; 
+  playerBombs[playerBombs.length-1].endX = mouseX;
+  playerBombs[playerBombs.length-1].endY = mouseY;
   
   if (mouseIsPressed) {
     playerBombs.push(new Player()); 
@@ -89,19 +91,23 @@ class Player {
     this.color = color(255, 0, 0); 
     
     this.launched = false; 
+    this.endX;
+    this.endY;
   }
   
   move() {
     console.log("player.move")
     if (this.launched == true) {
-      if (mouseX > windowWidth/2) {
+      
+      
+      if (this.endX > windowWidth/2) {
         this.xvel = 2;
       }
       else {
         this.xvel = -2; 
       }
-      let t = (mouseX - windowWidth/2)/this.xvel; 
-      this.yvel = (mouseY - (windowHeight - 30))/t; 
+      let t = (this.endX - windowWidth/2)/this.xvel; 
+      this.yvel = (this.endY - (windowHeight - 30))/t; 
 
       this.x = this.x + this.xvel; 
       this.y = this.y + this.yvel; 
