@@ -7,7 +7,6 @@ fill line mouseX mouseY stroke color noStroke mouseIsPressed*/
 let enemyBombs = []; 
 let playerBombs = []; 
 let player; 
-let pressed;
 
 function setup() {
   createCanvas(windowWidth, windowHeight); 
@@ -16,7 +15,6 @@ function setup() {
   }
   
   playerBombs.push(new Player()); 
-  pressed = false;
 }
 
 function draw() {
