@@ -18,7 +18,6 @@ function setup() {
 }
 
 function draw() {
-  // console.log(launched)
   background(0);
   
   for (let i=0; i < 10; i++) {
@@ -28,12 +27,14 @@ function draw() {
     enemy.offscreen(); 
   }
   
-  for (let i = 0; i< playerBombs.length; i++) {   
+  for (let i = 0; i < playerBombs.length; i++) {   
     player = playerBombs[i]; 
     player.draw(); 
     player.move();
-    player.removeLine(); 
   }
+  
+  stroke(color(255, 0, 0));
+  line(windowWidth/2, windowHeight-30, mouseX, mouseY);
 }
 
 function keyPressed() {
@@ -41,14 +42,11 @@ function keyPressed() {
 }
 
 function mousePressed() {
-  console.log("mousepressed")
   playerBombs[playerBombs.length-1].launched = true; 
   playerBombs[playerBombs.length-1].endX = mouseX;
   playerBombs[playerBombs.length-1].endY = mouseY;
   
-  if (mouseIsPressed) {
-    playerBombs.push(new Player()); 
-  }
+  playerBombs.push(new Player()); 
 }
 
 
@@ -67,6 +65,7 @@ class EnemyBomb {
   }
   
   draw(){
+    stroke(color(255));
     fill(255); 
     ellipse(this.x, this.y, this.r, this.r); 
   }
@@ -85,8 +84,8 @@ class Player {
     this.y = windowHeight - 30;
     this.r = 25;
   
-    this.xvel; 
-    this.yvel; 
+    this.vel = 10;
+    this.dirR = 0;
     
     this.color = color(255, 0, 0); 
     
@@ -96,37 +95,23 @@ class Player {
   }
   
   move() {
-    console.log("player.move")
     if (this.launched == true) {
+      let dX = this.endX - windowWidth / 2;
+      let dY = this.endY - (windowHeight - 30);
+      let cos = dX / Math.sqrt(dX * dX + dY * dY);
+      let sin = dY / Math.sqrt(dX * dX + dY * dY);
       
+      this.dirR += this.vel;
       
-      if (this.endX > windowWidth/2) {
-        this.xvel = 2;
-      }
-      else {
-        this.xvel = -2; 
-      }
-      let t = (this.endX - windowWidth/2)/this.xvel; 
-      this.yvel = (this.endY - (windowHeight - 30))/t; 
-
-      this.x = this.x + this.xvel; 
-      this.y = this.y + this.yvel; 
+      this.x = windowWidth / 2 + this.dirR * cos;
+      this.y = windowHeight - 30 + this.dirR * sin;
     }
   }
   
   draw() {
-    stroke(this.color); 
-    line(windowWidth/2, windowHeight -30, mouseX, mouseY);
-    
+    stroke(color(255, 0, 0))
     fill(255, 0, 0); 
     ellipse(this.x, this.y, this.r, this.r);
-  }
-  
-  removeLine() {
-    if (this.launched == true) {
-      noStroke(); 
-      this.color = color(0); 
-    }
   }
   
   
