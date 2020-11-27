@@ -2,11 +2,14 @@
     to your site with Javascript */
 
 /* global createCanvas background windowWidth windowHeight random ellipse
-fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode*/
+fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill*/
 
 let enemyBombs = [];
 let playerBombs = [];
 let player;
+
+let enemyRemove = []; 
+let playerRemove = []; 
 
 let backgroundColor = 0;
 
@@ -17,14 +20,14 @@ function setup() {
   for (let i = 0; i < 10; i++) {
     enemyBombs.push(new EnemyBomb());
   }
-
+  
   playerBombs.push(new Player(diffuseBool));
 }
 
 function draw() {
   background(backgroundColor);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < enemyBombs.length; i++) {
     let enemy = enemyBombs[i];
     enemy.draw();
     enemy.move();
@@ -35,8 +38,21 @@ function draw() {
     player = playerBombs[i];
     player.draw();
     player.move();
-    player.collision();
+    player.collision(i);
   }
+  
+  for(let i = 0; i<enemyRemove.length; i++) {
+    let removeIndex = enemyRemove[i]; 
+    enemyBombs.splice(removeIndex, 1); 
+  }
+  
+  for(let i = 0; i<playerRemove.length; i++) {
+    let removeIndex = playerRemove[i]; 
+    playerBombs.splice(removeIndex, 1); 
+  }
+  
+  enemyRemove = []; 
+  playerRemove = []; 
 }
 
 function keyPressed() {
@@ -115,6 +131,10 @@ class Player {
 
     this.diffuseBool = diffuseBool;
     this.color;
+    
+    this.collided = false; 
+    
+    this.index; 
   }
 
   move() {
@@ -132,22 +152,29 @@ class Player {
   }
 
   draw() {
-    this.changeColor();
-    fill(this.color);
-    stroke(this.color);
-    ellipse(this.x, this.y, this.r, this.r);
-    line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
-  }
-
-  changeColor() {
-    if (this.diffuseBool == true) {
-      this.color = color(0, 255, 0);
+    if (this.collided) {
+      noFill();
+      noStroke();
     } else {
-      this.color = color(255, 0, 0);
+      this.changeColor();
+      fill(this.color);
+      stroke(this.color);
+      ellipse(this.x, this.y, this.r, this.r);
+      line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
     }
   }
 
-  collision() {
+  changeColor() {
+    if (!this.launched) {
+      if (this.diffuseBool == true) {
+        this.color = color(0, 255, 0);
+      } else {
+        this.color = color(255, 0, 0);
+      }
+    }
+  }
+
+  collision(index) {
     for (let i = 0; i < enemyBombs.length; i++) {
       if (
         collideCircleCircle(
@@ -160,8 +187,20 @@ class Player {
         ) &&
         this.launched
       ) {
-        backgroundColor = 100;
         console.log("collided");
+        this.collided = true; 
+        
+        backgroundColor = this.color; 
+        setTimeout(() => {backgroundColor = color(0); }, 250);
+        
+        enemyRemove.push(i); 
+        playerRemove.push(index);
+        
+        
+        if (this.diffuseBool) {
+        } else {
+          
+        }
       }
     }
   }
