@@ -2,7 +2,7 @@
     to your site with Javascript */
 
 /* global createCanvas background windowWidth windowHeight random ellipse
-fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle*/
+fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode*/
 
 let enemyBombs = [];
 let playerBombs = [];
@@ -10,13 +10,15 @@ let player;
 
 let backgroundColor = 0;
 
+let diffuseBool = false;
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   for (let i = 0; i < 10; i++) {
     enemyBombs.push(new EnemyBomb());
   }
 
-  playerBombs.push(new Player());
+  playerBombs.push(new Player(diffuseBool));
 }
 
 function draw() {
@@ -35,13 +37,20 @@ function draw() {
     player.move();
     player.collision();
   }
-
-  stroke(color(255, 0, 0));
-  line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
 }
 
 function keyPressed() {
-  
+  // keyCode is d for diffuse
+  if (keyCode == 68) {
+    diffuseBool = true;
+    playerBombs[playerBombs.length - 1].diffuseBool = true;
+  }
+
+  // keyCode is b for bomb
+  if (keyCode == 66) {
+    diffuseBool = false;
+    playerBombs[playerBombs.length - 1].diffuseBool = false;
+  }
 }
 
 function mousePressed() {
@@ -49,7 +58,7 @@ function mousePressed() {
   playerBombs[playerBombs.length - 1].endX = mouseX;
   playerBombs[playerBombs.length - 1].endY = mouseY;
 
-  playerBombs.push(new Player());
+  playerBombs.push(new Player(diffuseBool));
 }
 
 class EnemyBomb {
@@ -92,7 +101,7 @@ class EnemyBomb {
 }
 
 class Player {
-  constructor() {
+  constructor(diffuseBool) {
     this.x = windowWidth / 2;
     this.y = windowHeight - 30;
     this.r = 25;
@@ -100,11 +109,12 @@ class Player {
     this.vel = 10;
     this.dirR = 0;
 
-    this.color = color(255, 0, 0);
-
     this.launched = false;
     this.endX;
     this.endY;
+
+    this.diffuseBool = diffuseBool;
+    this.color;
   }
 
   move() {
@@ -122,9 +132,19 @@ class Player {
   }
 
   draw() {
-    stroke(color(255, 0, 0));
-    fill(255, 0, 0);
+    this.changeColor();
+    fill(this.color);
+    stroke(this.color);
     ellipse(this.x, this.y, this.r, this.r);
+    line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
+  }
+
+  changeColor() {
+    if (this.diffuseBool == true) {
+      this.color = color(0, 255, 0);
+    } else {
+      this.color = color(255, 0, 0);
+    }
   }
 
   collision() {
@@ -137,7 +157,8 @@ class Player {
           enemyBombs[i].getX(),
           enemyBombs[i].getY(),
           enemyBombs[i].getR()
-        )
+        ) &&
+        this.launched
       ) {
         backgroundColor = 100;
         console.log("collided");
