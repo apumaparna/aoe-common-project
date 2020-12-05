@@ -31,8 +31,8 @@ function setup() {
 
   playerBombs.push(new Player(diffuseBool));
 
-  enemyScore = new Scores();
-  playerScore = new Scores();
+  enemyScore = new Scores(39);
+  playerScore = new Scores(40);
 }
 
 function draw() {
@@ -42,12 +42,6 @@ function draw() {
     enemyScore.draw(20, 40);
     playerScore.draw(20, windowHeight - 60);
 
-    // for (let i = 0; i < enemyBombs.length; i++) {
-    //   let enemy = enemyBombs[i];
-    //   enemy.draw();
-    //   enemy.move();
-    //   enemy.offscreen();
-    // }
 
     let enemy = enemyBombs[enemyBombs.length - 1];
     enemy.draw();
@@ -55,6 +49,7 @@ function draw() {
     if (enemy.getY() > windowHeight / 2) {
       lastEnemy.push(enemy);
       enemyBombs.pop();
+      enemyScore.decrease(); 
     }
 
     for (let i = 0; i < lastEnemy.length; i++) {
@@ -73,7 +68,7 @@ function draw() {
 
     for (let i = 0; i < enemyRemove.length; i++) {
       let removeIndex = enemyRemove[i];
-      enemyBombs.splice(removeIndex, 1);
+      lastEnemy.splice(removeIndex, 1);
     }
 
     for (let i = 0; i < playerRemove.length; i++) {
@@ -136,7 +131,7 @@ class EnemyBomb {
     this.y = 0;
     this.r = 25;
 
-    this.velocity = random(3, 5);
+    this.velocity = random(5, 8);
     this.isOffscreen = false;
   }
 
@@ -211,7 +206,7 @@ class Player {
   }
 
   draw() {
-    if (this.collided || playerScore.stock <= 0 ) {
+    if (this.collided || playerScore.stock <= 0) {
       noFill();
       noStroke();
     } else {
@@ -236,15 +231,15 @@ class Player {
   }
 
   collision(index) {
-    for (let i = 0; i < enemyBombs.length; i++) {
+    for (let i = 0; i < lastEnemy.length; i++) {
       if (
         collideCircleCircle(
           this.x,
           this.y,
           this.r,
-          enemyBombs[i].getX(),
-          enemyBombs[i].getY(),
-          enemyBombs[i].getR()
+          lastEnemy[i].getX(),
+          lastEnemy[i].getY(),
+          lastEnemy[i].getR()
         ) &&
         this.launched
       ) {
@@ -264,19 +259,44 @@ class Player {
 
         enemyRemove.push(i);
         playerRemove.push(index);
-
-        if (this.diffuseBool) {
-        } else {
-        }
       }
+    }
+
+    if (
+      collideCircleCircle(
+        this.x,
+        this.y,
+        this.r,
+        enemyBombs[enemyBombs.length - 1].getX(),
+        enemyBombs[enemyBombs.length - 1].getY(),
+        enemyBombs[enemyBombs.length - 1].getR()
+      ) &&
+      this.launched
+    ) {
+      console.log("collided");
+      this.collided = true;
+
+      backgroundColor = this.color;
+      setTimeout(() => {
+        backgroundColor = color(0);
+      }, 250);
+
+      if (this.y < windowHeight / 2 && this.diffuseBool == false) {
+        enemyScore.hit();
+      } else if (this.y >= windowHeight / 2 && this.diffuseBool == false) {
+        playerScore.hit();
+      }
+
+      enemyBombs.pop(); 
+      playerRemove.push(index);
     }
   }
 }
 
 class Scores {
-  constructor() {
+  constructor(stock) {
     this.health = 100;
-    this.stock = 40;
+    this.stock = stock;
   }
 
   hit() {
