@@ -21,9 +21,11 @@ let playerScore;
 
 let isGameOn = true;
 
+let lastEnemy = [];
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 40; i++) {
     enemyBombs.push(new EnemyBomb());
   }
 
@@ -38,13 +40,28 @@ function draw() {
 
   if (isGameOn == true) {
     enemyScore.draw(20, 40);
-    playerScore.draw(20, windowHeight - 40);
+    playerScore.draw(20, windowHeight - 60);
 
-    for (let i = 0; i < enemyBombs.length; i++) {
-      let enemy = enemyBombs[i];
-      enemy.draw();
-      enemy.move();
-      enemy.offscreen();
+    // for (let i = 0; i < enemyBombs.length; i++) {
+    //   let enemy = enemyBombs[i];
+    //   enemy.draw();
+    //   enemy.move();
+    //   enemy.offscreen();
+    // }
+
+    let enemy = enemyBombs[enemyBombs.length - 1];
+    enemy.draw();
+    enemy.move();
+    if (enemy.getY() > windowHeight / 2) {
+      lastEnemy.push(enemy);
+      enemyBombs.pop();
+    }
+
+    for (let i = 0; i < lastEnemy.length; i++) {
+      let bomb = lastEnemy[i];
+      bomb.draw();
+      bomb.move();
+      bomb.offscreen();
     }
 
     for (let i = 0; i < playerBombs.length; i++) {
@@ -66,17 +83,25 @@ function draw() {
 
     enemyRemove = [];
     playerRemove = [];
-  } else{
+  } else {
     textSize(24);
     fill(255);
     stroke(255);
-    textAlign(CENTER, CENTER); 
-    text(`Enemy health: ${enemyScore.health}`, windowWidth/2, windowHeight/2 -40); 
-    text(`Player health: ${playerScore.health}`, windowWidth/2, windowHeight/2); 
+    textAlign(CENTER, CENTER);
+    text(
+      `Enemy health: ${enemyScore.health}`,
+      windowWidth / 2,
+      windowHeight / 2 - 40
+    );
+    text(
+      `Player health: ${playerScore.health}`,
+      windowWidth / 2,
+      windowHeight / 2
+    );
     if (playerScore.health <= 0) {
-      text("ENEMY WON", windowWidth/2, windowHeight/2 + 40); 
-    } else{
-      text("YOU WON", windowWidth/2, windowHeight/2 + 40); 
+      text("ENEMY WON", windowWidth / 2, windowHeight / 2 + 40);
+    } else {
+      text("YOU WON", windowWidth / 2, windowHeight / 2 + 40);
     }
   }
 }
@@ -96,11 +121,13 @@ function keyPressed() {
 }
 
 function mousePressed() {
-  playerBombs[playerBombs.length - 1].launched = true;
-  playerBombs[playerBombs.length - 1].endX = mouseX;
-  playerBombs[playerBombs.length - 1].endY = mouseY;
-
-  playerBombs.push(new Player(diffuseBool));
+  if (playerScore.stock > 0) {
+    playerBombs[playerBombs.length - 1].launched = true;
+    playerBombs[playerBombs.length - 1].endX = mouseX;
+    playerBombs[playerBombs.length - 1].endY = mouseY;
+    playerBombs.push(new Player(diffuseBool));
+    playerScore.decrease();
+  }
 }
 
 class EnemyBomb {
@@ -109,7 +136,8 @@ class EnemyBomb {
     this.y = 0;
     this.r = 25;
 
-    this.velocity = random(0.5, 3);
+    this.velocity = random(3, 5);
+    this.isOffscreen = false;
   }
 
   move() {
@@ -117,16 +145,20 @@ class EnemyBomb {
   }
 
   draw() {
-    stroke(color(255));
-    fill(255);
-    ellipse(this.x, this.y, this.r, this.r);
+    if (this.isOffscreen == false) {
+      stroke(color(255));
+      fill(255);
+      ellipse(this.x, this.y, this.r, this.r);
+    }
   }
 
   offscreen() {
     if (this.y > windowHeight) {
+      this.isOffscreen = true;
       playerScore.hit();
       this.y = 0;
-      this.x = random(windowWidth / 5, (4 * windowWidth) / 5);
+      this.velocity = 0;
+      // this.x = random(windowWidth / 5, (4 * windowWidth) / 5);
     }
   }
 
@@ -179,15 +211,17 @@ class Player {
   }
 
   draw() {
-    if (this.collided) {
+    if (this.collided || playerScore.stock <= 0 ) {
       noFill();
       noStroke();
     } else {
+      // if (playerScore.stock > 0) {
       this.changeColor();
       fill(this.color);
       stroke(this.color);
       ellipse(this.x, this.y, this.r, this.r);
       line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
+      // }
     }
   }
 
@@ -242,13 +276,18 @@ class Player {
 class Scores {
   constructor() {
     this.health = 100;
+    this.stock = 40;
   }
 
   hit() {
     this.health -= 5;
     if (this.health <= 0) {
-      isGameOn = false; 
+      isGameOn = false;
     }
+  }
+
+  decrease() {
+    this.stock--;
   }
 
   draw(x, y) {
@@ -256,5 +295,6 @@ class Scores {
     fill(255);
     stroke(255);
     text(`Health: ${this.health}`, x, y);
+    text(`Stock: ${this.stock}`, x, y + 30);
   }
 }
