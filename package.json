@@ -1,0 +1,35 @@
+{
+  "//1": "Game",
+  "//2": "https://docs.npmjs.com/files/package.json",
+  "//3": "updating this file will download and update your packages",
+  "name": "aoe-common-project",
+  "version": "0.0.1",
+  "description": "An app that plots temperature changes detected by Arduino sensors",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.0.3",
+    "p5": "^1.1.7"
+  },
+  "engines": {
+    "node": "12.x"
+  },
+  "repository": {
+    "url": "https://glitch.com/~aoe-common-project"
+  },
+  "license": "ak4605@columbia.edu",
+  "keywords": [
+    "node",
+    "glitch",
+    "express",
+    "socket",
+    "p5.js",
+    "using",
+    "node",
+    "Arduino"
+  ]
+}
