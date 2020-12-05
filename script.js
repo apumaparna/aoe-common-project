@@ -2,57 +2,83 @@
     to your site with Javascript */
 
 /* global createCanvas background windowWidth windowHeight random ellipse
-fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill*/
+fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill
+textSize text textAlign CENTER*/
 
 let enemyBombs = [];
 let playerBombs = [];
 let player;
 
-let enemyRemove = []; 
-let playerRemove = []; 
+let enemyRemove = [];
+let playerRemove = [];
 
 let backgroundColor = 0;
 
 let diffuseBool = false;
+
+let enemyScore;
+let playerScore;
+
+let isGameOn = true;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   for (let i = 0; i < 10; i++) {
     enemyBombs.push(new EnemyBomb());
   }
-  
+
   playerBombs.push(new Player(diffuseBool));
+
+  enemyScore = new Scores();
+  playerScore = new Scores();
 }
 
 function draw() {
   background(backgroundColor);
 
-  for (let i = 0; i < enemyBombs.length; i++) {
-    let enemy = enemyBombs[i];
-    enemy.draw();
-    enemy.move();
-    enemy.offscreen();
-  }
+  if (isGameOn == true) {
+    enemyScore.draw(20, 40);
+    playerScore.draw(20, windowHeight - 40);
 
-  for (let i = 0; i < playerBombs.length; i++) {
-    player = playerBombs[i];
-    player.draw();
-    player.move();
-    player.collision(i);
+    for (let i = 0; i < enemyBombs.length; i++) {
+      let enemy = enemyBombs[i];
+      enemy.draw();
+      enemy.move();
+      enemy.offscreen();
+    }
+
+    for (let i = 0; i < playerBombs.length; i++) {
+      player = playerBombs[i];
+      player.draw();
+      player.move();
+      player.collision(i);
+    }
+
+    for (let i = 0; i < enemyRemove.length; i++) {
+      let removeIndex = enemyRemove[i];
+      enemyBombs.splice(removeIndex, 1);
+    }
+
+    for (let i = 0; i < playerRemove.length; i++) {
+      let removeIndex = playerRemove[i];
+      playerBombs.splice(removeIndex, 1);
+    }
+
+    enemyRemove = [];
+    playerRemove = [];
+  } else{
+    textSize(24);
+    fill(255);
+    stroke(255);
+    textAlign(CENTER, CENTER); 
+    text(`Enemy health: ${enemyScore.health}`, windowWidth/2, windowHeight/2 -40); 
+    text(`Player health: ${playerScore.health}`, windowWidth/2, windowHeight/2); 
+    if (playerScore.health <= 0) {
+      text("ENEMY WON", windowWidth/2, windowHeight/2 + 40); 
+    } else{
+      text("YOU WON", windowWidth/2, windowHeight/2 + 40); 
+    }
   }
-  
-  for(let i = 0; i<enemyRemove.length; i++) {
-    let removeIndex = enemyRemove[i]; 
-    enemyBombs.splice(removeIndex, 1); 
-  }
-  
-  for(let i = 0; i<playerRemove.length; i++) {
-    let removeIndex = playerRemove[i]; 
-    playerBombs.splice(removeIndex, 1); 
-  }
-  
-  enemyRemove = []; 
-  playerRemove = []; 
 }
 
 function keyPressed() {
@@ -98,6 +124,7 @@ class EnemyBomb {
 
   offscreen() {
     if (this.y > windowHeight) {
+      playerScore.hit();
       this.y = 0;
       this.x = random(windowWidth / 5, (4 * windowWidth) / 5);
     }
@@ -131,10 +158,10 @@ class Player {
 
     this.diffuseBool = diffuseBool;
     this.color;
-    
-    this.collided = false; 
-    
-    this.index; 
+
+    this.collided = false;
+
+    this.index;
   }
 
   move() {
@@ -188,20 +215,46 @@ class Player {
         this.launched
       ) {
         console.log("collided");
-        this.collided = true; 
-        
-        backgroundColor = this.color; 
-        setTimeout(() => {backgroundColor = color(0); }, 250);
-        
-        enemyRemove.push(i); 
+        this.collided = true;
+
+        backgroundColor = this.color;
+        setTimeout(() => {
+          backgroundColor = color(0);
+        }, 250);
+
+        if (this.y < windowHeight / 2 && this.diffuseBool == false) {
+          enemyScore.hit();
+        } else if (this.y >= windowHeight / 2 && this.diffuseBool == false) {
+          playerScore.hit();
+        }
+
+        enemyRemove.push(i);
         playerRemove.push(index);
-        
-        
+
         if (this.diffuseBool) {
         } else {
-          
         }
       }
     }
+  }
+}
+
+class Scores {
+  constructor() {
+    this.health = 100;
+  }
+
+  hit() {
+    this.health -= 5;
+    if (this.health <= 0) {
+      isGameOn = false; 
+    }
+  }
+
+  draw(x, y) {
+    textSize(24);
+    fill(255);
+    stroke(255);
+    text(`Health: ${this.health}`, x, y);
   }
 }
