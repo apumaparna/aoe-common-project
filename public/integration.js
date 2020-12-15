@@ -1,4 +1,4 @@
-/* global p5 trim setDiffuse setBomb atan cos sin PI windowHeight windowWidth updateLine*/
+/* global p5 trim setDiffuse setBomb atan cos sin PI windowHeight windowWidth updateLine isGameOn*/
 
 // Declare a "SerialPort" object
 var serial;
@@ -66,7 +66,7 @@ function gotRawData(thedata) {
 
 function parse() {
   let currentString = "X-axis: 496 | Y-axis: 526 |";
-  // let currentString = "button 2 pressed"
+  // let currentString = "button 4 pressed"
   trim(currentString); // remove any trailing whitespace
   if (!currentString) return; // if the string is empty, do no more
   // parseInt(currentString);
@@ -79,6 +79,7 @@ function parse() {
     setBomb();
   } else if (currentString == "button 3 pressed") {
   } else if (currentString == "button 4 pressed") {
+    isGameOn = false; 
   } else {
     let posArray = currentString.split("|")
     // console.log(posArray); 
