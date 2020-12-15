@@ -3,7 +3,7 @@
 
 /* global createCanvas background windowWidth windowHeight random ellipse
 fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill
-textSize text textAlign CENTER*/
+textSize text textAlign CENTER parse serial p5 portName serverConnected gotList gotData gotError gotOpen gotClose*/
 
 let enemyBombs = [];
 let playerBombs = [];
@@ -23,6 +23,9 @@ let isGameOn = true;
 
 let lastEnemy = [];
 
+let endLineX; 
+let endLineY; 
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   for (let i = 0; i < 40; i++) {
@@ -33,15 +36,60 @@ function setup() {
 
   enemyScore = new Scores(39);
   playerScore = new Scores(40);
+  
+  console.log("hello")
+  parse(); 
+  // Instantiate our SerialPort object
+  serial = new p5.SerialPort();
+
+  // Get a list the ports available
+  // You should have a callback defined to see the results
+  serial.list();
+
+  // Assuming our Arduino is connected, let's open the connection to it
+  // Change this to the name of your arduino's serial port
+  serial.open(portName);
+
+  // Here are the callbacks that you can register
+  // When we connect to the underlying server
+  serial.on("connected", serverConnected);
+
+  // When we get a list of serial ports that are available
+  serial.on("list", gotList);
+  // OR
+  //serial.onList(gotList);
+
+  // When we some data from the serial port
+  serial.on("data", gotData);
+  // OR
+  //serial.onData(gotData);
+
+  // When or if we get an error
+  serial.on("error", gotError);
+  // OR
+  //serial.onError(gotError);
+
+  // When our serial port is opened and ready for read/write
+  serial.on("open", gotOpen);
+  // OR
+  //serial.onOpen(gotOpen);
+
+  // serial.on('close', gotClose);
+
+  // Callback to get the raw data, as it comes in for handling yourself
+  // serial.on("rawdata", gotRawData);
+  // OR
+  //serial.onRawData(gotRawData);
 }
 
 function draw() {
   background(backgroundColor);
+  
+  updateLine(null, null); 
 
   if (isGameOn == true) {
     enemyScore.draw(20, 40);
     playerScore.draw(20, windowHeight - 60);
-
 
     let enemy = enemyBombs[enemyBombs.length - 1];
     enemy.draw();
@@ -49,7 +97,7 @@ function draw() {
     if (enemy.getY() > windowHeight / 2) {
       lastEnemy.push(enemy);
       enemyBombs.pop();
-      enemyScore.decrease(); 
+      enemyScore.decrease();
     }
 
     for (let i = 0; i < lastEnemy.length; i++) {
@@ -101,27 +149,56 @@ function draw() {
   }
 }
 
+function updateLine(x, y) {
+  if (x == null) {
+    endLineX = mouseX; 
+  } else {
+    endLineX = x;  
+  } 
+  
+  if (y == null) {
+    endLineY = mouseY; 
+  } else {
+    endLineY = y;  
+  } 
+}
+
+
+function setDiffuse() {
+  console.log("setDiffuse")
+  diffuseBool = true;
+  playerBombs[playerBombs.length - 1].diffuseBool = true;
+}
+
+function setBomb() {
+  console.log("setBomb")
+  diffuseBool = false;
+  playerBombs[playerBombs.length - 1].diffuseBool = false;
+}
+
 function keyPressed() {
   // keyCode is d for diffuse
   if (keyCode == 68) {
-    diffuseBool = true;
-    playerBombs[playerBombs.length - 1].diffuseBool = true;
+    setDiffuse();
   }
 
   // keyCode is b for bomb
   if (keyCode == 66) {
-    diffuseBool = false;
-    playerBombs[playerBombs.length - 1].diffuseBool = false;
+    setBomb();
   }
+}
+
+function launch() {
+  playerBombs[playerBombs.length - 1].launched = true;
+  playerBombs[playerBombs.length - 1].endX = endLineX;
+  playerBombs[playerBombs.length - 1].endY = endLineY;
+  playerBombs.push(new Player(diffuseBool));
+  playerScore.decrease();
 }
 
 function mousePressed() {
   if (playerScore.stock > 0) {
-    playerBombs[playerBombs.length - 1].launched = true;
-    playerBombs[playerBombs.length - 1].endX = mouseX;
-    playerBombs[playerBombs.length - 1].endY = mouseY;
-    playerBombs.push(new Player(diffuseBool));
-    playerScore.decrease();
+    launch(); 
   }
 }
 
@@ -215,7 +292,7 @@ class Player {
       fill(this.color);
       stroke(this.color);
       ellipse(this.x, this.y, this.r, this.r);
-      line(windowWidth / 2, windowHeight - 30, mouseX, mouseY);
+      line(windowWidth / 2, windowHeight - 30, endLineX, endLineY);
       // }
     }
   }
@@ -287,7 +364,7 @@ class Player {
         playerScore.hit();
       }
 
-      enemyBombs.pop(); 
+      enemyBombs.pop();
       playerRemove.push(index);
     }
   }
