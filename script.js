@@ -3,7 +3,7 @@
 
 /* global createCanvas background windowWidth windowHeight random ellipse
 fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill
-textSize text textAlign CENTER parse serial p5 portName serverConnected gotList gotData gotError gotOpen gotClose*/
+textSize text textAlign CENTER parse serial p5 portName serverConnected gotList gotData gotError gotOpen gotClose gotRawData*/
 
 let enemyBombs = [];
 let playerBombs = [];
@@ -15,6 +15,7 @@ let playerRemove = [];
 let backgroundColor = 0;
 
 let diffuseBool = false;
+let stealBool = false;
 
 let enemyScore;
 let playerScore;
@@ -25,6 +26,9 @@ let lastEnemy = [];
 
 let endLineX; 
 let endLineY; 
+
+let stealClock;
+let bombClock;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -37,10 +41,15 @@ function setup() {
   enemyScore = new Scores(39);
   playerScore = new Scores(40);
   
-  console.log("hello")
-  parse(); 
+  stealClock = new clock(10);
+  bombClock = new clock(5);
+  
+  // console.log("hello")
+  // parse(); 
   // Instantiate our SerialPort object
-  serial = new p5.SerialPort();
+  // serial = new p5.SerialPort('192.168.86.36', 8081);
+  // serial = new p5.SerialPort('localhost', 8000);
+  serial = new p5.SerialPort(); 
 
   // Get a list the ports available
   // You should have a callback defined to see the results
@@ -55,14 +64,19 @@ function setup() {
   serial.on("connected", serverConnected);
 
   // When we get a list of serial ports that are available
-  serial.on("list", gotList);
+  // serial.on("list", gotList);
   // OR
-  //serial.onList(gotList);
+  serial.onList(gotList);
 
   // When we some data from the serial port
-  serial.on("data", gotData);
+  // serial.on("data", gotData);
   // OR
-  //serial.onData(gotData);
+  serial.onData(gotData);
+  
+  // Callback to get the raw data, as it comes in for handling yourself
+  // serial.on("rawdata", gotRawData);
+  // OR
+  // serial.onRawData(gotRawData);
 
   // When or if we get an error
   serial.on("error", gotError);
@@ -74,31 +88,36 @@ function setup() {
   // OR
   //serial.onOpen(gotOpen);
 
-  // serial.on('close', gotClose);
+  serial.on('close', gotClose);
 
-  // Callback to get the raw data, as it comes in for handling yourself
-  // serial.on("rawdata", gotRawData);
-  // OR
-  //serial.onRawData(gotRawData);
 }
 
 function draw() {
+  
   background(backgroundColor);
   
-  updateLine(null, null); 
+  // If using mouse, uncomment the next line 
+  // updateLine(null, null); 
 
   if (isGameOn == true) {
+    stealClock.draw(20, windowHeight - 90, "Steal");
+    bombClock.draw(20, windowHeight - 120, "Bomb");
     enemyScore.draw(20, 40);
     playerScore.draw(20, windowHeight - 60);
-
-    let enemy = enemyBombs[enemyBombs.length - 1];
-    enemy.draw();
-    enemy.move();
-    if (enemy.getY() > windowHeight / 2) {
-      lastEnemy.push(enemy);
-      enemyBombs.pop();
-      enemyScore.decrease();
+    
+    stealClock.countDown();
+    bombClock.countDown();
+    if(enemyScore.stock > 0) {
+      let enemy = enemyBombs[enemyBombs.length - 1];
+      enemy.draw();
+      enemy.move();
+      if (enemy.getY() > windowHeight / 2) {
+        lastEnemy.push(enemy);
+        enemyBombs.pop();
+        enemyScore.decrease();
+      }
     }
+    
 
     for (let i = 0; i < lastEnemy.length; i++) {
       let bomb = lastEnemy[i];
@@ -112,6 +131,7 @@ function draw() {
       player.draw();
       player.move();
       player.collision(i);
+      player.offScreen(i);
     }
 
     for (let i = 0; i < enemyRemove.length; i++) {
@@ -167,14 +187,23 @@ function updateLine(x, y) {
 function setDiffuse() {
   console.log("setDiffuse")
   diffuseBool = true;
-  playerBombs[playerBombs.length - 1].diffuseBool = true;
+  stealBool = false;
+  playerBombs[playerBombs.length - 1] = new Player(diffuseBool);
 }
 
 function setBomb() {
   console.log("setBomb")
   diffuseBool = false;
-  playerBombs[playerBombs.length - 1].diffuseBool = false;
+  stealBool = false;
+  playerBombs[playerBombs.length - 1] = new Player(diffuseBool);
 }
+
+function setSteal() {
+  console.log("setSteal");
+  stealBool = true;
+  playerBombs[playerBombs.length - 1] = new Stealer();
+}
+
 
 function keyPressed() {
   // keyCode is d for diffuse
@@ -186,19 +215,40 @@ function keyPressed() {
   if (keyCode == 66) {
     setBomb();
   }
+  
+  // keyCode is s for steal
+  if (keyCode == 83) {
+    setSteal();
+  }
 }
 
 function launch() {
+  console.log("launch"); 
   playerBombs[playerBombs.length - 1].launched = true;
   playerBombs[playerBombs.length - 1].endX = endLineX;
   playerBombs[playerBombs.length - 1].endY = endLineY;
-  playerBombs.push(new Player(diffuseBool));
-  playerScore.decrease();
+  if(stealBool) playerBombs.push(new Stealer());
+  else {
+    playerBombs.push(new Player(diffuseBool));
+    playerScore.decrease();
+  }
 }
 
 function mousePressed() {
-  if (playerScore.stock > 0) {
-    launch(); 
+  if(stealBool) {
+    if(stealClock.checkTime()) {
+      launch();
+      stealClock.begin();
+    }
+  }
+  else if(diffuseBool == false) {
+    if(bombClock.checkTime() && playerScore.stock > 0) {
+      launch();
+      bombClock.begin();
+    }
+  }
+  else if(playerScore.stock > 0) {
+    launch();
   }
 }
 
@@ -253,7 +303,7 @@ class Player {
     this.y = windowHeight - 30;
     this.r = 25;
 
-    this.vel = 10;
+    this.vel = 20;
     this.dirR = 0;
 
     this.launched = false;
@@ -368,6 +418,117 @@ class Player {
       playerRemove.push(index);
     }
   }
+  
+  offScreen(index) {
+    if(this.y < 0 || this.x < 0 || this.x > windowWidth) {
+      playerRemove.push(index);
+      if(this.diffuseBool == false && this.y < windowHeight) {
+        backgroundColor = this.color;
+        setTimeout(() => {
+          backgroundColor = color(0);
+        }, 250);
+        enemyScore.hit();
+      }
+    }
+  }
+}
+
+class Stealer extends Player {
+  constructor() {
+    super(false);
+    this.stealPower = random(3, 5);
+  }
+  
+  draw() {
+    if (this.collided) {
+      noFill();
+      noStroke();
+    } else {
+      this.changeColor();
+      fill(this.color);
+      stroke(this.color);
+      ellipse(this.x, this.y, this.r, this.r);
+      line(windowWidth / 2, windowHeight - 30, endLineX, endLineY);
+    }
+  }
+  
+  changeColor() {
+    this.color = color(0, 0, 255);
+  }
+  
+  collision(index) {
+    for (let i = 0; i < lastEnemy.length; i++) {
+      if (
+        collideCircleCircle(
+          this.x,
+          this.y,
+          this.r,
+          lastEnemy[i].getX(),
+          lastEnemy[i].getY(),
+          lastEnemy[i].getR()
+        ) &&
+        this.launched
+      ) {
+        console.log("collided");
+        this.collided = true;
+
+        backgroundColor = this.color;
+        setTimeout(() => {
+          backgroundColor = color(0);
+        }, 250);
+
+        playerRemove.push(index);
+      }
+    }
+
+    if (
+      collideCircleCircle(
+        this.x,
+        this.y,
+        this.r,
+        enemyBombs[enemyBombs.length - 1].getX(),
+        enemyBombs[enemyBombs.length - 1].getY(),
+        enemyBombs[enemyBombs.length - 1].getR()
+      ) &&
+      this.launched
+    ) {
+      console.log("collided");
+      this.collided = true;
+
+      backgroundColor = this.color;
+      setTimeout(() => {
+        backgroundColor = color(0);
+      }, 250);
+      
+      playerRemove.push(index);
+    }
+    
+  }
+  
+  
+  offScreen(index) {
+    //steal success
+    if(this.y < 0 && enemyScore.stock > 0) {
+      backgroundColor = this.color;
+      setTimeout(() => {
+        backgroundColor = color(0);
+      }, 250);
+      
+      while(this.stealPower > 0 && enemyScore.stock > 0) {
+        enemyScore.decrease();
+        playerScore.increase();
+        this.stealPower --;
+        console.log("Steal!");
+      }
+    }
+    
+    // //remove from array
+    // if(this.y < 0 || this.x < 0 || this.x > windowWidth) {
+    //   playerRemove.push(index);
+    // }
+  }
+  
+  
 }
 
 class Scores {
@@ -386,6 +547,10 @@ class Scores {
   decrease() {
     this.stock--;
   }
+  
+  increase() {
+    this.stock++;
+  }
 
   draw(x, y) {
     textSize(24);
@@ -393,5 +558,50 @@ class Scores {
     stroke(255);
     text(`Health: ${this.health}`, x, y);
     text(`Stock: ${this.stock}`, x, y + 30);
+  }
+  
+}
+
+class clock {
+  constructor(limit) {
+    this.time = 0;
+    this.limit = limit;
+    this.wait = false;
+    this.start = false;
+  }
+  
+  begin() {
+    this.time = this.limit + 1;
+    this.start = true;
+    this.wait = false;
+  }
+  
+  countDown() {
+    if(!this.checkTime() && this.start) {
+      if(this.wait == false) {
+        this.time --;
+      }
+
+      if(this.wait == false) {
+        setTimeout(() => {
+          this.wait = false;
+        }, 1000);
+        this.wait = true;
+      }
+    }
+  }
+  
+  checkTime() {
+    if(this.time == 0) {
+      return true;
+    }
+  }
+  
+  
+  draw(x, y, name) {
+    textSize(24);
+    fill(255);
+    stroke(255);
+    text(name + ` Clock: ${this.time}`, x, y);
   }
 }
