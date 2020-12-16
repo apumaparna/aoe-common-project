@@ -3,7 +3,8 @@
 
 /* global createCanvas background windowWidth windowHeight random ellipse
 fill line mouseX mouseY stroke color noStroke mouseIsPressed collideCircleCircle keyCode noFill
-textSize text textAlign CENTER parse serial p5 portName serverConnected gotList gotData gotError gotOpen gotClose gotRawData*/
+textSize text textAlign CENTER parse serial p5 portName serverConnected gotList gotData gotError gotOpen gotClose gotRawData
+rect */
 
 let enemyBombs = [];
 let playerBombs = [];
@@ -97,7 +98,7 @@ function draw() {
   background(backgroundColor);
   
   // If using mouse, uncomment the next line 
-  // updateLine(null, null); 
+  updateLine(null, null); 
 
   if (isGameOn == true) {
     stealClock.draw(20, windowHeight - 90, "Steal");
@@ -123,7 +124,7 @@ function draw() {
       let bomb = lastEnemy[i];
       bomb.draw();
       bomb.move();
-      bomb.offscreen();
+      bomb.offscreen(i);
     }
 
     for (let i = 0; i < playerBombs.length; i++) {
@@ -223,7 +224,6 @@ function keyPressed() {
 }
 
 function launch() {
-  console.log("launch"); 
   playerBombs[playerBombs.length - 1].launched = true;
   playerBombs[playerBombs.length - 1].endX = endLineX;
   playerBombs[playerBombs.length - 1].endY = endLineY;
@@ -274,12 +274,13 @@ class EnemyBomb {
     }
   }
 
-  offscreen() {
+  offscreen(index) {
     if (this.y > windowHeight) {
       this.isOffscreen = true;
       playerScore.hit();
       this.y = 0;
       this.velocity = 0;
+      enemyRemove.push(index);
       // this.x = random(windowWidth / 5, (4 * windowWidth) / 5);
     }
   }
@@ -333,7 +334,7 @@ class Player {
   }
 
   draw() {
-    if (this.collided || playerScore.stock <= 0) {
+    if (this.collided || playerScore.stock < 0) {
       noFill();
       noStroke();
     } else {
@@ -399,6 +400,7 @@ class Player {
         enemyBombs[enemyBombs.length - 1].getR()
       ) &&
       this.launched
+      && enemyBombs[enemyBombs.length - 1].getY() > 20
     ) {
       console.log("collided");
       this.collided = true;
@@ -420,16 +422,18 @@ class Player {
   }
   
   offScreen(index) {
-    if(this.y < 0 || this.x < 0 || this.x > windowWidth) {
-      playerRemove.push(index);
-      if(this.diffuseBool == false && this.y < windowHeight) {
-        backgroundColor = this.color;
-        setTimeout(() => {
-          backgroundColor = color(0);
-        }, 250);
-        enemyScore.hit();
-      }
+    if(this.diffuseBool == false && this.y < 0) {
+      backgroundColor = this.color;
+      setTimeout(() => {
+        backgroundColor = color(0);
+      }, 250);
+      enemyScore.hit();
     }
+    
+    if((this.y < 0 || this.x < 0 || this.x > windowWidth) && !this.collided) {
+      playerRemove.push(index);
+    }
+    
   }
 }
 
@@ -491,6 +495,7 @@ class Stealer extends Player {
         enemyBombs[enemyBombs.length - 1].getR()
       ) &&
       this.launched
+      && enemyBombs[enemyBombs.length - 1].getY() > enemyBombs[enemyBombs.length - 1].getR()
     ) {
       console.log("collided");
       this.collided = true;
@@ -522,10 +527,10 @@ class Stealer extends Player {
       }
     }
     
-    // //remove from array
-    // if(this.y < 0 || this.x < 0 || this.x > windowWidth) {
-    //   playerRemove.push(index);
-    // }
+    //remove from array
+    if((this.y < 0 || this.x < 0 || this.x > windowWidth) && !this.collided) {
+      playerRemove.push(index);
+    }
   }
   
   
@@ -564,35 +569,43 @@ class Scores {
 
 class clock {
   constructor(limit) {
-    this.time = 0;
+    this.time = limit;
     this.limit = limit;
     this.wait = false;
     this.start = false;
   }
   
   begin() {
-    this.time = this.limit + 1;
+    this.time = 0;
     this.start = true;
-    this.wait = false;
+    this.wait = true;
+    setTimeout(() => {
+      this.wait = false;
+    }, 1000);
   }
   
   countDown() {
-    if(!this.checkTime() && this.start) {
+    if(this.start) {
       if(this.wait == false) {
-        this.time --;
+        this.time ++;
       }
-
-      if(this.wait == false) {
+      
+      if(this.wait == false && this.time < this.limit) {
+        
         setTimeout(() => {
           this.wait = false;
         }, 1000);
+        
         this.wait = true;
       }
+      
+      this.checkTime();
     }
   }
   
   checkTime() {
-    if(this.time == 0) {
+    if(this.time == this.limit) {
+      this.start = false;
       return true;
     }
   }
@@ -602,6 +615,13 @@ class clock {
     textSize(24);
     fill(255);
     stroke(255);
-    text(name + ` Clock: ${this.time}`, x, y);
+    text(name, x, y);
+    noStroke();
+    if(this.time == this.limit) fill(0, 255, 255);
+    else fill(255, 0, 255);
+    rect(x + 100, y - 18, 60 * (this.time / this.limit), 15);
+    stroke(255);
+    noFill();
+    rect(x + 100, y - 18, 60, 15);
   }
 }
