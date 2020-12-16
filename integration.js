@@ -1,9 +1,10 @@
-/* global p5 trim setDiffuse setBomb atan cos sin PI windowHeight windowWidth updateLine isGameOn*/
+/* global p5 trim setDiffuse setBomb setSteal atan cos sin PI windowHeight windowWidth updateLine isGameOn launch*/
 
 // Declare a "SerialPort" object
 var serial;
 let latestData = "waiting for data"; // you'll use this to write incoming data to the canvas
-var portName = "/dev/tty.usbmodem1411";
+var portName = "/dev/tty.usbmodem141101";
+// let portName = 'COM4'
 
 // We are connected and ready to go
 function serverConnected() {
@@ -38,11 +39,63 @@ function gotError(theerror) {
 // There is data available to work with from the serial port
 function gotData() {
   let currentString = serial.readLine(); // read the incoming string
+  // trim(currentString); // remove any trailing whitespace
+  // if (!currentString) return; // if the string is empty, do no more
+  // parseInt(currentString);
+  // console.log(currentString); // print the string
+  // latestData = currentString; // save it for the draw method
+
+  if (currentString == null || currentString == '') {
+    // console.log("string is empty")
+    return; // if the string is empty, do no more
+  }
+
   trim(currentString); // remove any trailing whitespace
-  if (!currentString) return; // if the string is empty, do no more
-  parseInt(currentString);
+
+  // parseInt(currentString);
   console.log(currentString); // print the string
-  latestData = currentString; // save it for the draw method
+  // latestData = currentString; // save it for the draw method
+
+  if (currentString == "button 1 pressed") {
+    setDiffuse();
+    // launch();
+  } else if (currentString == "button 2 pressed") {
+    setBomb();
+    // launch();
+  } else if (currentString == "button 3 pressed") {
+    setSteal();
+  } else if (currentString == "button 4 pressed") {
+    launch();
+  } else if (currentString == "button 5 pressed") {
+    isGameOn = false;
+  } else if (currentString == "button 6 pressed") {
+    isGameOn = true;
+  } else {
+    let posArray = currentString.split("|");
+    // console.log(posArray);
+    let xaxis = parseInt(posArray[0].split(":")[1].trim());
+    let yaxis = parseInt(posArray[1].split(":")[1].trim());
+    let theta = atan((xaxis - 511) / (yaxis - 511));
+    if (theta < 0) {
+      theta = theta + PI;
+    }
+
+    let r = windowHeight;
+
+    // console.log("theta");
+    // console.log(theta);
+
+    // console.log("delta x");
+    // console.log(r * cos(theta));
+    let x = windowWidth / 2 + r * cos(theta);
+    let y = windowHeight - 30 - r * sin(theta);
+
+    console.log(x);
+    console.log(y);
+
+    console.log("updateLine");
+    updateLine(x, y);
+  }
 }
 
 // We got raw from the serial port
@@ -65,8 +118,8 @@ function gotRawData(thedata) {
 // serial.write(somevar) writes out the value of somevar to the serial device
 
 function parse() {
-  let currentString = "X-axis: 496 | Y-axis: 526 |";
-  // let currentString = "button 4 pressed"
+  // let currentString = "X-axis: 496 | Y-axis: 526 |";
+  let currentString = "button 4 pressed";
   trim(currentString); // remove any trailing whitespace
   if (!currentString) return; // if the string is empty, do no more
   // parseInt(currentString);
@@ -78,32 +131,33 @@ function parse() {
   } else if (currentString == "button 2 pressed") {
     setBomb();
   } else if (currentString == "button 3 pressed") {
+    setSteal();
   } else if (currentString == "button 4 pressed") {
-    isGameOn = false; 
+    isGameOn = false;
   } else {
-    let posArray = currentString.split("|")
-    // console.log(posArray); 
-    let xaxis = parseInt(posArray[0].split(":")[1].trim()); 
+    let posArray = currentString.split("|");
+    // console.log(posArray);
+    let xaxis = parseInt(posArray[0].split(":")[1].trim());
     let yaxis = parseInt(posArray[1].split(":")[1].trim());
-    let theta = atan((xaxis - 511)/(yaxis - 511)); 
-    if (theta <0) {
-      theta = theta + PI; 
+    let theta = 0.25* atan((xaxis - 511) / (yaxis - 511));
+    if (theta < 0) {
+      theta = theta + PI;
     }
 
-    let r = windowHeight; 
-    
-    console.log("theta"); 
-    console.log(theta); 
-    
+    let r = windowHeight;
+
+    console.log("theta");
+    console.log(theta);
+
     console.log("delta x");
-    console.log(r*cos(theta)); 
-    let x = windowWidth/2 + r*cos(theta);  
-    let y = windowHeight - 30 - r*sin(theta);  
-    
-    console.log(x); 
-    console.log(y); 
-    
-    console.log("updateLine")
-    updateLine(x,y); 
+    console.log(r * cos(theta));
+    let x = windowWidth / 2 + r * cos(theta);
+    let y = windowHeight - 30 - r * sin(theta);
+
+    console.log(x);
+    console.log(y);
+
+    console.log("updateLine");
+    updateLine(x, y);
   }
 }
